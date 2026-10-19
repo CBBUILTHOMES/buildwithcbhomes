@@ -200,7 +200,10 @@ document.addEventListener("DOMContentLoaded", function () {
 // 1) On every page load, capture gclid/fbclid/utm_* from the URL and persist
 //    them (sessionStorage + 90-day first-party cookie) so they survive
 //    navigation from a landing page to the contact form.
-// 2) Fill matching hidden fields on every Formspree form (creates them if absent).
+//    Also record first-touch landing_page + landing_referrer once per
+//    session even with no ad params; later pageviews do not overwrite it.
+// 2) Fill matching hidden fields on every Formspree form (creates them if absent),
+//    including landing_page, landing_referrer and form_page.
 // 3) On submit, also POST the lead to the CB CRM public intake, then let the
 //    normal Formspree submit continue (email to info@ + #leads unchanged).
 //    The CRM post is best-effort: any failure or a 2.5s timeout never blocks
@@ -253,11 +256,19 @@ document.addEventListener("DOMContentLoaded", function () {
       attr = fresh;
       save(attr);
     }
+    // No ad params and no stored landing page yet: record this pageview as the
+    // first touch so organic and direct leads still show where they landed.
+    if (!attr.landing_page) {
+      attr.landing_page = (location.origin + location.pathname).slice(0, 500);
+      attr.landing_referrer = (document.referrer || "").slice(0, 500);
+      save(attr);
+    }
   } catch (e) {}
 
+  var FORM_KEYS = KEYS.concat(["landing_page", "landing_referrer"]);
   var forms = document.querySelectorAll('form[action*="formspree.io"]');
   forms.forEach(function (form) {
-    KEYS.forEach(function (k) {
+    function hidden(k) {
       var el = form.querySelector('input[name="' + k + '"]');
       if (!el) {
         el = document.createElement("input");
@@ -265,8 +276,14 @@ document.addEventListener("DOMContentLoaded", function () {
         el.name = k;
         form.appendChild(el);
       }
+      return el;
+    }
+    FORM_KEYS.forEach(function (k) {
+      var el = hidden(k);
       if (attr[k]) el.value = attr[k];
     });
+    // Page the form was submitted from (not stored).
+    hidden("form_page").value = location.pathname.slice(0, 500);
 
     if (!CRM_WORKSPACE_ID) return;
 
