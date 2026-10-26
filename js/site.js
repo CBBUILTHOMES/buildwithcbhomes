@@ -213,7 +213,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // intake is ready, then set to the CB Built Homes workspace id
   // ("cmv6frmxd0000rep2oggnnoqb") to enable. Blank = no CRM post; hidden
   // attribution fields still fill and Formspree is unchanged.
-  var CRM_WORKSPACE_ID = "";
+  var CRM_WORKSPACE_ID = "cmv6frmxd0000rep2oggnnoqb";
   var CRM_API_URL = "https://api.buildwithcbhomes.com/api/public/leads";
   var KEYS = ["gclid", "fbclid", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
   var STORE = "cb_attr";
