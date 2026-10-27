@@ -213,7 +213,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // intake is ready, then set to the CB Built Homes workspace id
   // ("cmv6frmxd0000rep2oggnnoqb") to enable. Blank = no CRM post; hidden
   // attribution fields still fill and Formspree is unchanged.
-  var CRM_WORKSPACE_ID = "";
+  var CRM_WORKSPACE_ID = "cmv6frmxd0000rep2oggnnoqb";
   var CRM_API_URL = "https://api.buildwithcbhomes.com/api/public/leads";
   var KEYS = ["gclid", "fbclid", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
   var STORE = "cb_attr";
@@ -249,8 +249,10 @@ document.addEventListener("DOMContentLoaded", function () {
       var v = params.get(k);
       if (v) { fresh[k] = v.slice(0, 200); hit = true; }
     });
-    // A new ad click / campaign link replaces the previous touch as a set.
-    if (hit) {
+    // First touch wins: only record ad params if none were stored yet
+    // (matches the CRM's first-touch attribution).
+    var hadAd = KEYS.some(function (k) { return attr[k]; });
+    if (hit && !hadAd) {
       fresh.landing_page = (location.origin + location.pathname).slice(0, 500);
       fresh.landing_referrer = (document.referrer || "").slice(0, 500);
       attr = fresh;
@@ -298,7 +300,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return el && el.value ? String(el.value).trim() : "";
       }
       var lines = [];
-      [["project-type", "Project"], ["address", "Address"], ["budget", "Budget"],
+      [["project-type", "Service"], ["address", "Address"], ["budget", "Budget"],
        ["timeline", "Timeline"], ["referral-source", "Heard about us"]].forEach(function (p) {
         var v = val(p[0]);
         if (v) lines.push(p[1] + ": " + v);
@@ -306,20 +308,18 @@ document.addEventListener("DOMContentLoaded", function () {
       var details = val("details");
       if (details) lines.push("", details);
 
-      var slug = location.pathname.replace(/^\/|\/$|\.html$/g, "").replace(/[^a-z0-9]+/gi, "_") || "home";
-      var payload = { workspaceId: CRM_WORKSPACE_ID, source: ("site_" + slug).slice(0, 50) };
+      var payload = { workspaceId: CRM_WORKSPACE_ID, source: "website_quote_form" };
       if (val("name")) payload.name = val("name").slice(0, 200);
       if (val("email")) payload.email = val("email").slice(0, 320);
       if (val("phone")) payload.phone = val("phone").slice(0, 30);
       if (lines.length) payload.message = lines.join("\n").slice(0, 2000);
-      if (val("_gotcha")) payload._hp = val("_gotcha");
-      payload.pageUrl = (location.origin + location.pathname).slice(0, 500);
+      payload._hp = val("_gotcha"); // honeypot: empty for real visitors
       var ref = attr.landing_referrer || document.referrer;
       if (ref) payload.referrer = ref.slice(0, 500);
       var map = { utm_source: "utmSource", utm_medium: "utmMedium", utm_campaign: "utmCampaign",
                   utm_term: "utmTerm", utm_content: "utmContent", gclid: "gclid", fbclid: "fbclid" };
       Object.keys(map).forEach(function (k) {
-        var v = val(k) || attr[k];
+        var v = attr[k] || val(k);
         if (v) payload[map[k]] = String(v).slice(0, 200);
       });
 
