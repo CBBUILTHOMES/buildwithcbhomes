@@ -287,6 +287,46 @@ document.addEventListener("DOMContentLoaded", function () {
     // Page the form was submitted from (not stored).
     hidden("form_page").value = location.pathname.slice(0, 500);
 
+    // ---- GA4 / GTM lead event (Phase A tracking) ----
+    // Fires once per valid submit with beacon transport so it survives the
+    // navigation to Formspree. Also pushes a GTM dataLayer event
+    // ("generate_lead") that the Google Ads conversion tag triggers on.
+    // A pending/fired marker in sessionStorage lets contact-thanks.html
+    // avoid double counting (see the guard there).
+    form.addEventListener("submit", function () {
+      if (form.dataset.crmSent === "1" || form.dataset.leadSent === "1") return;
+      if (typeof form.checkValidity === "function" && !form.checkValidity()) return;
+      var hp = form.querySelector('[name="_gotcha"]');
+      if (hp && hp.value) return; // honeypot filled: not a real lead
+      form.dataset.leadSent = "1";
+      var pt = form.querySelector('[name="project-type"]');
+      var params = {
+        currency: "USD",
+        value: 0,
+        method: "formspree",
+        form_page: location.pathname.slice(0, 100),
+        landing_page: String(attr.landing_page || "").slice(0, 100),
+        project_type: pt && pt.value ? String(pt.value).slice(0, 100) : "",
+        utm_source: String(attr.utm_source || "").slice(0, 100),
+        utm_campaign: String(attr.utm_campaign || "").slice(0, 100)
+      };
+      var leadId = String(Date.now()) + "-" + Math.random().toString(36).slice(2, 8);
+      try {
+        sessionStorage.setItem("cb_lead", JSON.stringify({ id: leadId, fired: true, params: params }));
+      } catch (e) {}
+      try {
+        if (typeof window.gtag === "function") {
+          var gp = {}; Object.keys(params).forEach(function (k) { gp[k] = params[k]; });
+          gp.transport_type = "beacon";
+          window.gtag("event", "generate_lead", gp);
+        }
+        window.dataLayer = window.dataLayer || [];
+        var dl = { event: "generate_lead", lead_id: leadId };
+        Object.keys(params).forEach(function (k) { dl[k] = params[k]; });
+        window.dataLayer.push(dl);
+      } catch (e) {}
+    });
+
     if (!CRM_WORKSPACE_ID) return;
 
     form.addEventListener("submit", function (ev) {
