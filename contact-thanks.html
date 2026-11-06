@@ -74,11 +74,21 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   gtag('config', 'G-Y764YJP2SC');
 </script>
 <script>
-  gtag('event', 'generate_lead', {
-    currency: 'USD',
-    value: 0,
-    method: 'formspree_contact'
-  });
+  // generate_lead fires on submit (js/site.js, beacon). Guard: fire here only
+  // as a fallback when the submit-time event didn't run, and only once per
+  // submission, so reloads/back-forward never double count.
+  (function () {
+    var rec = null;
+    try { rec = JSON.parse(sessionStorage.getItem('cb_lead') || 'null'); } catch (e) {}
+    if (!rec || rec.thanked) return; // no pending submission, or already handled
+    if (!rec.fired) {
+      var p = rec.params || {}; p.method = p.method || 'formspree_contact';
+      gtag('event', 'generate_lead', p);
+      window.dataLayer.push(Object.assign({ event: 'generate_lead', lead_id: rec.id }, p));
+    }
+    rec.thanked = true;
+    try { sessionStorage.setItem('cb_lead', JSON.stringify(rec)); } catch (e) {}
+  })();
 </script>
 </head>
 <body class="page-thanks">
