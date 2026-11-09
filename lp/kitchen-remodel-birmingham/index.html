@@ -43,6 +43,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .trust-line { font-family: var(--sans); font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: var(--gray); margin-top: 1.2rem; line-height: 1.9; }
     .fit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 4rem); }
     @media (max-width: 800px) { .fit-grid { grid-template-columns: 1fr; } }
+    /* Phone: stack hero CTAs with a gap so they don't butt together; extra bottom room above the fixed call/estimate bar */
+    @media (max-width: 600px) {
+      .philosophy-hero .funnel-copy .btn { display: block; width: 100%; text-align: center; }
+      .philosophy-hero .funnel-copy .btn + .btn { margin-left: 0 !important; margin-top: .75rem; }
+      .philosophy-hero { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)); }
+    }
     .faq-list { max-width: 780px; margin: 0 auto; }
     .faq-item { padding: 1.8rem 0; border-bottom: 1px solid var(--line); }
     .faq-item:last-child { border-bottom: none; }
